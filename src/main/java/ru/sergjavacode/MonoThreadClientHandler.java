@@ -81,7 +81,7 @@ public class MonoThreadClientHandler implements Runnable {
                 Files.copy(filePath, out);
                 out.flush();
             }
-
+            socket.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
