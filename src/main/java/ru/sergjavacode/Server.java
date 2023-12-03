@@ -9,19 +9,29 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
     static ExecutorService executeIt = Executors.newFixedThreadPool(64);
+    private Map<String, Map<String, Handler>> mapAllHandlers = new HashMap<>();
+    private Map<String, Handler> mapPOSTHandlers = new HashMap<>();
+    private Map<String, Handler> mapGETHandlers = new HashMap<>();
 
-    public void run() {
-        try (final var serverSocket = new ServerSocket(9999)) {
+    public Server() {
+        mapAllHandlers.put("GET", mapGETHandlers);
+        mapAllHandlers.put("POST", mapPOSTHandlers);
+    }
+
+    public void run(int port) {
+        try (final var serverSocket = new ServerSocket(port)) {
             while (true) {
                 final var socket = serverSocket.accept();
                 addConnect(socket);
-                System.out.println();
+
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -29,6 +39,15 @@ public class Server {
     }
 
     public void addConnect(Socket socket) {
-        executeIt.execute(new MonoThreadClientHandler(socket));
+        executeIt.execute(new ServerClientThread(socket, mapAllHandlers));
+    }
+
+    public void addHandler(String typeRequest, String pathRequest, Handler handler) {
+        if (typeRequest.equals("GET")) {
+            mapGETHandlers.put(pathRequest, handler);
+        }
+        if (typeRequest.equals("POST")) {
+            mapPOSTHandlers.put(pathRequest, handler);
+        }
     }
 }
