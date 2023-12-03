@@ -65,8 +65,6 @@ public class ServerClientThread implements Runnable {
                 } else {
                     if (!responseCanceled) {
                         Request request = new Request(method, requestLine, headers, body.toString());
-                        out.write("xxxxxxxx".getBytes());
-                        out.flush();
                         mapAllHandlers.get(method).get(path).handle(request, out);
                         responseCanceled = true;
                     }
