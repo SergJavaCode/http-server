@@ -6,5 +6,5 @@ import java.io.IOException;
 
 @FunctionalInterface
 public interface Handler {
-    public abstract void handle(Request request, BufferedOutputStream responseStream) throws IOException;
+    void handle(MyRequest request, BufferedOutputStream responseServer) throws IOException;
 }
