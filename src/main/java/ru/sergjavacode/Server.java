@@ -22,16 +22,16 @@ public class Server {
     private Map<String, Handler> mapGETHandlers = new HashMap<>();
 
     public Server() {
-        mapAllHandlers.put("GET", mapGETHandlers);
-        mapAllHandlers.put("POST", mapPOSTHandlers);
+
     }
 
     public void run(int port) {
+        mapAllHandlers.put("GET", mapGETHandlers);
+        mapAllHandlers.put("POST", mapPOSTHandlers);
         try (final var serverSocket = new ServerSocket(port)) {
             while (true) {
-                final var socket = serverSocket.accept();
+                Socket socket = serverSocket.accept();
                 addConnect(socket);
-
             }
         } catch (IOException e) {
             e.printStackTrace();

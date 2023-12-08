@@ -42,6 +42,7 @@ public class Main {
                     Files.copy(filePath, responseStream);
                     responseStream.flush();
                 }
+
             }
         });
         server.addHandler("POST", "/messages", new Handler() {

@@ -31,51 +31,76 @@ public class ServerClientThread implements Runnable {
         try (
                 final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 final var out = new BufferedOutputStream(socket.getOutputStream());
+
         ) {
-            while (!socket.isClosed()) {
-                // read only request line for simplicity
-                // must be in form GET /path HTTP/1.1
-                final String line = in.readLine();
-                final Optional<String> optLine = Optional.ofNullable(line);
-                if (optLine.isPresent()) {
-                    if ((optLine.get().startsWith("GET") ||
-                            optLine.get().startsWith("POST") ||
-                            optLine.get().startsWith("PUT") ||
-                            optLine.get().startsWith("OPTIONS") ||
-                            optLine.get().startsWith("HEAD") ||
-                            optLine.get().startsWith("PATCH") ||
-                            optLine.get().startsWith("DELETE") ||
-                            optLine.get().startsWith("TRACE") ||
-                            optLine.get().startsWith("CONNECT")) &&
-                            optLine.get().split(" ").length == 3
-                    ) {
-                        requestLine = optLine.get();
-                        method = optLine.get().split(" ")[0];
-                        path = "/" + optLine.get().split(" ")[1].split("/")[1];
-                        bodyStart = false;
-                        responseCanceled = false;
+            String line = in.readLine();
+            Optional<String> optLine = Optional.ofNullable(line);
+            if ((optLine.get().startsWith("GET") ||
+                    optLine.get().startsWith("POST") ||
+                    optLine.get().startsWith("PUT") ||
+                    optLine.get().startsWith("OPTIONS") ||
+                    optLine.get().startsWith("HEAD") ||
+                    optLine.get().startsWith("PATCH") ||
+                    optLine.get().startsWith("DELETE") ||
+                    optLine.get().startsWith("TRACE") ||
+                    optLine.get().startsWith("CONNECT")) &&
+                    optLine.get().split(" ").length == 3
+            ) {
+                requestLine = optLine.get();
+                method = optLine.get().split(" ")[0];
+                path = optLine.get().split(" ")[1];
 
-                    } else if (optLine.get().equals("") || bodyStart) {
-                        body.append(optLine.get());
-                        bodyStart = true;
-                    } else {
-                        headers.add(optLine.get());
-                    }
+//                        final var mimeType = Files.probeContentType(Path.of("."+path));
+//                        final var length = Files.size(Path.of("."+path));
+//                        out.write((
+//                                "HTTP/1.1 200 OK\r\n" +
+//                                        "Content-Type: " + mimeType + "\r\n" +
+//                                        "Content-Length: " + length + "\r\n" +
+//                                        "Connection: close\r\n" +
+//                                        "\r\n"
+//                        ).getBytes());
+//                        Files.copy(Path.of("."+path), out);
+//                        out.flush();
 
-                } else {
-                    if (!responseCanceled) {
-                        Request request = new Request(method, requestLine, headers, body.toString());
-                        mapAllHandlers.get(method).get(path).handle(request, out);
-                        responseCanceled = true;
-                    }
+                bodyStart = false;
+                responseCanceled = false;
 
-
-                }
             }
+            in.lines().forEach(s -> {
+                headers.add(s);
+            });
+
+            Request request = new Request(method, requestLine, headers, body.toString());
+            if (path.contains("/messages")) {
+                mapAllHandlers.get(method).get("/messages").handle(request, out);
+            }
+            responseCanceled = true;
+            socket.close();
+//            while (true) {
+//                line = in.readLine();
+//                if (line==null){
+//
+//                    break;
+//                }
+//                // read only request line for simplicity
+//                // must be in form GET /path HTTP/1.1
+//
+//                // if (optLine.isEmpty()) {break;}
+//                if (line.equals("") || bodyStart) {
+//                    body.append(optLine.get());
+//                    bodyStart = true;
+//
+//                } else {
+//                    headers.add(optLine.get());
+//                }
+//
+//
+//            }
 
 
         } catch (IOException e) {
             throw new RuntimeException(e);
+
         }
 
     }
