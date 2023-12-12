@@ -114,6 +114,10 @@ public class ServerHTTP {
         };
     }
 
+    public static List<String> getPathRequest(MyRequest myRequest) {
+        return myRequest.getPathRequest();
+    }
+
     public static void start(ServerSocket serverSocket) {
         try {
             while (true) {
@@ -143,6 +147,7 @@ public class ServerHTTP {
                                 request.addHeader(requestLine);
                                 requestLine = in.readLine();
                             }
+                            getPathRequest(request);
                             if (parts.length != 3) {
                                 socket.close();
                             }
