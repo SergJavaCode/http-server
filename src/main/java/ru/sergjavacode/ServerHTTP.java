@@ -1,11 +1,18 @@
 package ru.sergjavacode;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -125,28 +132,35 @@ public class ServerHTTP {
                 executorService.execute(new Thread(() -> {
                     try (final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                          final var out = new BufferedOutputStream(socket.getOutputStream())) {
+                        String response = IOUtils.toString(in);
+                        String[] responsePart = response.split("\\r\\n\\r\\n");
+                        List<String> requestLineAndHeaders = List.of(responsePart[0].split("\\r\\n")) ;
                         final String[] parts;
                         MyRequest request;
-                        var requestLine = in.readLine();
-                        if ((requestLine.startsWith("GET") ||
-                                requestLine.startsWith("POST") ||
-                                requestLine.startsWith("PUT") ||
-                                requestLine.startsWith("OPTIONS") ||
-                                requestLine.startsWith("HEAD") ||
-                                requestLine.startsWith("PATCH") ||
-                                requestLine.startsWith("DELETE") ||
-                                requestLine.startsWith("TRACE") ||
-                                requestLine.startsWith("CONNECT")) &&
-                                requestLine.split(" ").length == 3
+                        if ((requestLineAndHeaders.get(0).startsWith("GET") ||
+                                requestLineAndHeaders.get(0).startsWith("POST") ||
+                                requestLineAndHeaders.get(0).startsWith("PUT") ||
+                                requestLineAndHeaders.get(0).startsWith("OPTIONS") ||
+                                requestLineAndHeaders.get(0).startsWith("HEAD") ||
+                                requestLineAndHeaders.get(0).startsWith("PATCH") ||
+                                requestLineAndHeaders.get(0).startsWith("DELETE") ||
+                                requestLineAndHeaders.get(0).startsWith("TRACE") ||
+                                requestLineAndHeaders.get(0).startsWith("CONNECT")) &&
+                                requestLineAndHeaders.get(0).split(" ").length == 3
                         ) {
-                            parts = requestLine.split(" ");
-                            request = new MyRequest(requestLine);
-                            requestLine = in.readLine();
-                            while (requestLine != null) {
-                                if (requestLine.isEmpty()) break;
-                                request.addHeader(requestLine);
-                                requestLine = in.readLine();
+                            parts = requestLineAndHeaders.get(0).split(" ");
+                            request = new MyRequest(requestLineAndHeaders.get(0));
+                            if (requestLineAndHeaders.contains("Content-Type: application/x-www-form-urlencoded")
+                                    &&requestLineAndHeaders.get(0).startsWith("POST")
+                                    &&responsePart.length==2){
+                                List<NameValuePair> bodyListNVP= URLEncodedUtils.parse(response.split("\\r\\n\\r\\n")[1], Charset.defaultCharset());
+                                request.setBodyListNVP(bodyListNVP);
                             }
+
+                            for (int i = 1; i < requestLineAndHeaders.size(); i++) {
+                                request.addHeader(requestLineAndHeaders.get(i));
+                            }
+
                             getPathRequest(request);
                             if (parts.length != 3) {
                                 socket.close();
